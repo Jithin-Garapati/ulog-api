@@ -1,0 +1,39 @@
+name = "ulog-api"
+main = "cloudflare_worker.js"
+compatibility_date = "2024-03-25"
+workers_dev = true
+usage_model = "bundled"
+
+[site]
+bucket = "./public"
+
+[build]
+command = "pip install -r requirements_cloudflare.txt"
+
+[env.production]
+name = "ulog-api-prod"
+route = "ulog-api.jithingarapati.workers.dev/*"
+
+# Environment variables 
+[vars]
+DEBUG = "False"
+PORT = "8080"
+HOST = "0.0.0.0"
+DEFAULT_MODEL = "gemini-2.0-flash"
+
+# R2 bucket binding
+[[r2_buckets]]
+binding = "ULOG_ANALYZER" 
+bucket_name = "ulog-analyzer"
+
+# Python support for Workers
+[build.upload]
+format = "service-worker"
+
+# Advanced settings
+[triggers]
+crons = []
+
+[limits]
+cpu_ms = 50
+memory_mb = 128
