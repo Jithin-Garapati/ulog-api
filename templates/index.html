@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ULog Analysis Agent</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary-color: #3869d4;
+            --tool-call-color: #b48ead;
+            --tool-result-color: #88c0d0;
+            --thinking-color: #a3be8c;
+            --answer-color: #ebcb8b;
+            --background-color: #f8f9fa;
+            --chatbox-bg: #ffffff;
+            --border-color: #e9ecef;
+            --tool-bg: #f8f9fa;
+            --code-bg: #f1f3f5;
+        }
+        
+        body {
+            background-color: var(--background-color);
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .app-header {
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 1.5rem;
+        }
+        
+        .app-title {
+            color: var(--primary-color);
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+        
+        .chat-window {
+            border-radius: 10px;
+            background-color: var(--chatbox-bg);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            height: 600px;
+            overflow-y: auto;
+            padding: 1rem;
+            border: 1px solid var(--border-color);
+        }
+        
+        .message {
+            margin-bottom: 1rem;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            max-width: 90%;
+            position: relative;
+        }
+        
+        .message-user {
+            background-color: var(--primary-color);
+            color: white;
+            margin-left: auto;
+            border-radius: 18px 18px 0 18px;
+        }
+        
+        .message-thinking {
+            background-color: var(--thinking-color);
+            color: black;
+            border-radius: 18px 18px 18px 0;
+            opacity: 0.85;
+        }
+        
+        .message-tool-call {
+            background-color: var(--tool-call-color);
+            color: white;
+            padding: 0.75rem;
+            border-radius: 8px 8px 8px 0;
+        }
+        
+        .message-tool-result {
+            background-color: var(--tool-result-color);
+            color: white;
+            padding: 0.75rem;
+            border-radius: 0 8px 8px 8px;
+            margin-left: 1.5rem;
+        }
+        
+        .message-answer {
+            background-color: var(--answer-color);
+            color: black;
+            border-radius: 8px 8px 8px 0;
+            font-weight: 500;
+        }
+        
+        .tool-box {
+            background-color: var(--tool-bg);
+            border-radius: 6px;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            border-left: 3px solid var(--tool-call-color);
+        }
+        
+        .tool-result-box {
+            background-color: var(--tool-bg);
+            border-radius: 6px;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            border-left: 3px solid var(--tool-result-color);
+            margin-left: 1rem;
+        }
+        
+        .tool-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+        
+        .tool-content {
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            font-size: 0.85rem;
+            background-color: var(--code-bg);
+            padding: 0.75rem;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        
+        .query-form {
+            margin-top: 1rem;
+        }
+        
+        .query-input {
+            border-radius: 20px;
+            padding: 0.75rem 1.25rem;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border-color);
+        }
+        
+        .send-button {
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            margin-left: 0.5rem;
+        }
+        
+        .examples-dropdown {
+            margin-bottom: 1rem;
+        }
+        
+        .examples-dropdown button {
+            background-color: var(--background-color);
+            color: var(--primary-color);
+            border: 1px solid var(--border-color);
+        }
+        
+        .loading-indicator {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            margin-top: 1rem;
+        }
+        
+        .loading-spinner {
+            width: 1.5rem;
+            height: 1.5rem;
+            margin-right: 0.5rem;
+        }
+        
+        .error-message {
+            color: #e53e3e;
+            background-color: #fed7d7;
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            display: none;
+        }
+        
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            margin-left: 1rem;
+        }
+        
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--primary-color);
+            border-radius: 50%;
+            margin: 0 2px;
+            animation: pulse 1.4s infinite ease-in-out;
+        }
+        
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(0.8);
+                opacity: 0.5;
+            }
+            50% {
+                transform: scale(1.2);
+                opacity: 1;
+            }
+        }
+        
+        .model-selector {
+            margin-bottom: 1rem;
+        }
+        
+        .message-timestamp {
+            font-size: 0.7rem;
+            color: rgba(0, 0, 0, 0.5);
+            text-align: right;
+            margin-top: 0.25rem;
+        }
+        
+        pre {
+            margin: 0;
+            white-space: pre-wrap;
+        }
+        
+        code {
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+        }
+        
+        .ulog-file-selector {
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="app-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="app-title">ULog Analysis Agent</h1>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="show-reasoning" checked>
+                    <label class="form-check-label" for="show-reasoning">Show Reasoning</label>
+                </div>
+            </div>
+            
+            <div class="row mt-3">
+                <div class="col-md-4">
+                    <div class="model-selector">
+                        <label for="model-select" class="form-label">Model:</label>
+                        <select class="form-select" id="model-select">
+                            <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                            <option value="qwen-qwq-32b">Qwen-QWQ-32B</option>
+                            <option value="llama3-70b-8192">Llama3-70B</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="ulog-file-selector">
+                        <label for="ulog-file-select" class="form-label">ULog File:</label>
+                        <div class="d-flex">
+                            <select class="form-select me-2" id="ulog-file-select">
+                                <option value="">Default ULog file</option>
+                                <!-- ULog files loaded from API -->
+                            </select>
+                            <button type="button" class="btn btn-outline-primary" id="upload-ulog-btn">
+                                <i class="bi bi-upload"></i>
+                            </button>
+                        </div>
+                        <!-- Hidden file input for upload -->
+                        <input type="file" id="ulog-file-upload" accept=".ulg" style="display: none;">
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="examples-dropdown">
+                        <label for="examples-dropdown" class="form-label">Example queries:</label>
+                        <select class="form-select" id="examples-dropdown">
+                            <option value="">Select an example query...</option>
+                            <!-- Examples loaded from API -->
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="chat-window" id="chat-window">
+            <div class="message message-answer">
+                <p>Hello! I'm the ULog Analysis Agent. I can help answer questions about your flight log data using various tools. Try one of the example queries or ask your own question.</p>
+            </div>
+        </div>
+        
+        <div class="loading-indicator" id="loading-indicator">
+            <div class="spinner-border text-primary loading-spinner" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <span>Processing your query...</span>
+        </div>
+        
+        <div class="error-message" id="error-message"></div>
+        
+        <form class="query-form d-flex" id="query-form">
+            <input type="text" class="form-control query-input" id="query-input" placeholder="Ask a question about your flight log...">
+            <button type="submit" class="btn send-button">
+                <i class="bi bi-send-fill"></i>
+            </button>
+        </form>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // API endpoint
+        const API_BASE_URL = '/api';
+        let activeSessionId = null;
+        let eventSource = null;
+        
+        // DOM elements
+        const chatWindow = document.getElementById('chat-window');
+        const queryForm = document.getElementById('query-form');
+        const queryInput = document.getElementById('query-input');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const errorMessage = document.getElementById('error-message');
+        const examplesDropdown = document.getElementById('examples-dropdown');
+        const modelSelect = document.getElementById('model-select');
+        const ulogFileSelect = document.getElementById('ulog-file-select');
+        const showReasoningToggle = document.getElementById('show-reasoning');
+        const uploadUlogBtn = document.getElementById('upload-ulog-btn');
+        const ulogFileUpload = document.getElementById('ulog-file-upload');
+        
+        // Format timestamp
+        function formatTimestamp(timestamp) {
+            const date = new Date(timestamp * 1000);
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+        
+        // Add a message to the chat window
+        function addMessage(message) {
+            const messageDiv = document.createElement('div');
+            
+            switch(message.type) {
+                case 'user':
+                    messageDiv.className = 'message message-user';
+                    messageDiv.innerHTML = `<p>${message.content}</p>`;
+                    break;
+                    
+                case 'thinking':
+                    if (!showReasoningToggle.checked) return; // Skip if reasoning is hidden
+                    messageDiv.className = 'message message-thinking';
+                    messageDiv.innerHTML = `
+                        <p>${message.content}</p>
+                        <div class="message-timestamp">${formatTimestamp(message.timestamp)}</div>
+                    `;
+                    break;
+                    
+                case 'tool_call':
+                    const toolCall = message.content;
+                    messageDiv.className = 'tool-box';
+                    messageDiv.innerHTML = `
+                        <div class="tool-header">
+                            <span>Tool: ${toolCall.name}</span>
+                            <span class="badge bg-secondary">${toolCall.id.substring(0, 8)}</span>
+                        </div>
+                        <div class="tool-content"><code>${JSON.stringify(toolCall.arguments, null, 2)}</code></div>
+                        <div class="message-timestamp">${formatTimestamp(message.timestamp)}</div>
+                    `;
+                    break;
+                    
+                case 'tool_result':
+                    const toolResult = message.content;
+                    messageDiv.className = 'tool-result-box';
+                    messageDiv.innerHTML = `
+                        <div class="tool-header">
+                            <span>Result: ${toolResult.tool_call_id.substring(0, 8)}</span>
+                        </div>
+                        <div class="tool-content"><code>${formatToolOutput(toolResult.content)}</code></div>
+                        <div class="message-timestamp">${formatTimestamp(message.timestamp)}</div>
+                    `;
+                    break;
+                    
+                case 'final_answer':
+                    messageDiv.className = 'message message-answer';
+                    messageDiv.innerHTML = `
+                        <p>${message.content}</p>
+                        <div class="message-timestamp">${formatTimestamp(message.timestamp)}</div>
+                    `;
+                    break;
+                    
+                default:
+                    messageDiv.className = 'message';
+                    messageDiv.textContent = message.content;
+            }
+            
+            chatWindow.appendChild(messageDiv);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+        
+        // Format tool output for better display
+        function formatToolOutput(content) {
+            try {
+                // If it's JSON, pretty print it
+                const obj = JSON.parse(content);
+                return JSON.stringify(obj, null, 2);
+            } catch (e) {
+                // If it's not JSON, return as is
+                return content;
+            }
+        }
+        
+        // Load ULog files from API
+        function loadULogFiles() {
+            fetch(`${API_BASE_URL}/ulog_files`)
+                .then(response => response.json())
+                .then(data => {
+                    // Clear existing options except the first one
+                    ulogFileSelect.innerHTML = '<option value="">Default ULog file</option>';
+                    
+                    // Add options for each ULog file
+                    data.files.forEach(file => {
+                        const option = document.createElement('option');
+                        option.value = file.path;
+                        option.textContent = file.name;
+                        ulogFileSelect.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading ULog files:', error);
+                    ulogFileSelect.innerHTML = '<option value="">Error loading files</option>';
+                });
+        }
+        
+        // Handle file upload
+        function uploadULogFile(file) {
+            // Create a FormData object
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            // Show loading message in dropdown
+            ulogFileSelect.innerHTML = '<option value="">Uploading file...</option>';
+            
+            // Show loading indicator
+            loadingIndicator.style.display = 'flex';
+            errorMessage.style.display = 'none';
+            
+            // Upload the file
+            fetch(`${API_BASE_URL}/upload_ulog`, {
+                method: 'POST',
+                body: formData,
+                // Don't set Content-Type header - browser will set it with boundary for FormData
+                headers: {
+                    // Let the browser set the appropriate Content-Type with boundary
+                },
+                mode: 'cors',
+                credentials: 'same-origin'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Hide loading indicator
+                loadingIndicator.style.display = 'none';
+                
+                if (data.success) {
+                    // Reload the ULog file list
+                    loadULogFiles();
+                    
+                    // Show success message
+                    const successMsg = document.createElement('div');
+                    successMsg.className = 'alert alert-success alert-dismissible fade show mt-2';
+                    successMsg.innerHTML = `
+                        File uploaded successfully.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                    document.querySelector('.ulog-file-selector').appendChild(successMsg);
+                    
+                    // Automatically select the newly uploaded file
+                    setTimeout(() => {
+                        const options = Array.from(ulogFileSelect.options);
+                        const newFileOption = options.find(option => option.textContent === file.name);
+                        if (newFileOption) {
+                            ulogFileSelect.value = newFileOption.value;
+                        }
+                    }, 500);
+                } else {
+                    // Show error
+                    errorMessage.textContent = data.error || 'Failed to upload file';
+                    errorMessage.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                // Hide loading indicator
+                loadingIndicator.style.display = 'none';
+                
+                console.error('Error uploading file:', error);
+                errorMessage.textContent = `Error uploading file: ${error.message}`;
+                errorMessage.style.display = 'block';
+                
+                // Reset the dropdown
+                loadULogFiles();
+            });
+        }
+        
+        // Submit a query
+        async function submitQuery(query) {
+            if (!query) return;
+            
+            // Clear previous results
+            if (eventSource) {
+                eventSource.close();
+                eventSource = null;
+            }
+            
+            // Show loading indicator
+            loadingIndicator.style.display = 'flex';
+            errorMessage.style.display = 'none';
+            errorMessage.textContent = '';
+            
+            // Add user query to chat
+            addMessage({
+                type: 'user',
+                content: query,
+                timestamp: Math.floor(Date.now() / 1000)
+            });
+            
+            // Prepare request data
+            const requestData = {
+                query: query,
+                show_reasoning: showReasoningToggle.checked,
+                model: modelSelect.value
+            };
+            
+            // Add ULog file if selected
+            if (ulogFileSelect.value) {
+                requestData.ulog_file = ulogFileSelect.value;
+            }
+            
+            // Send the query to the API
+            fetch(`${API_BASE_URL}/query`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                activeSessionId = data.session_id;
+                
+                // Start listening for updates
+                startEventStream(activeSessionId);
+            })
+            .catch(error => {
+                console.error('Error submitting query:', error);
+                errorMessage.textContent = `Error: ${error.message}`;
+                errorMessage.style.display = 'block';
+                loadingIndicator.style.display = 'none';
+            });
+        }
+        
+        // Start listening for server-sent events
+        function startEventStream(sessionId) {
+            // Close any existing event source
+            if (eventSource) {
+                eventSource.close();
+            }
+            
+            // Create a new event source
+            eventSource = new EventSource(`${API_BASE_URL}/sessions/${sessionId}/stream`);
+            
+            // Handle incoming events
+            eventSource.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                
+                if (data.type === 'complete') {
+                    // Session is complete
+                    eventSource.close();
+                    loadingIndicator.style.display = 'none';
+                } else {
+                    // Add the message to the chat window
+                    addMessage(data);
+                }
+            };
+            
+            eventSource.onerror = function(error) {
+                console.error('EventSource error:', error);
+                eventSource.close();
+                loadingIndicator.style.display = 'none';
+                errorMessage.textContent = 'Connection to server lost. Please try again.';
+                errorMessage.style.display = 'block';
+            };
+        }
+        
+        // Load example queries
+        async function loadExampleQueries() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/examples`);
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                // Clear existing options (except first)
+                while (examplesDropdown.options.length > 1) {
+                    examplesDropdown.remove(1);
+                }
+                
+                // Add examples
+                data.examples.forEach((example, index) => {
+                    const option = document.createElement('option');
+                    option.value = example;
+                    option.textContent = example;
+                    examplesDropdown.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading examples:', error);
+            }
+        }
+        
+        // Event listeners
+        queryForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const query = queryInput.value.trim();
+            
+            if (query) {
+                // Clear the input
+                queryInput.value = '';
+                submitQuery(query);
+            }
+        });
+        
+        examplesDropdown.addEventListener('change', function() {
+            const selectedQuery = this.value;
+            if (selectedQuery) {
+                queryInput.value = selectedQuery;
+                this.value = ''; // Reset the dropdown
+            }
+        });
+        
+        // Upload button click handler
+        uploadUlogBtn.addEventListener('click', function() {
+            ulogFileUpload.click();
+        });
+        
+        // File input change handler
+        ulogFileUpload.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                uploadULogFile(this.files[0]);
+            }
+            // Reset the input
+            this.value = '';
+        });
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadExampleQueries();
+            loadULogFiles();
+        });
+    </script>
+</body>
+</html>

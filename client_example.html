@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ULog API Client Example</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.5;
+            margin: 0;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            color: #3869d4;
+        }
+        
+        .section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+        }
+        
+        .section h2 {
+            margin-top: 0;
+            font-size: 1.2rem;
+        }
+        
+        .code {
+            background-color: #f6f8fa;
+            padding: 10px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+            font-size: 0.9rem;
+        }
+        
+        button {
+            background-color: #3869d4;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        
+        button:hover {
+            background-color: #2a50a2;
+        }
+        
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        
+        input[type="text"], select, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        
+        .message-query {
+            background-color: #f0f7ff;
+            border-left: 4px solid #3869d4;
+        }
+        
+        .message-thinking {
+            background-color: #f5f5f5;
+            border-left: 4px solid #999;
+            white-space: pre-wrap;
+        }
+        
+        .message-tool-call {
+            background-color: #e6f7ff;
+            border-left: 4px solid #1890ff;
+        }
+        
+        .message-tool-result {
+            background-color: #f6ffed;
+            border-left: 4px solid #52c41a;
+        }
+        
+        .message-error {
+            background-color: #fff2f0;
+            border-left: 4px solid #ff4d4f;
+        }
+        
+        .message-final-answer {
+            background-color: #f0f5ff;
+            border-left: 4px solid #2f54eb;
+            font-weight: 500;
+        }
+        
+        .message-complete {
+            color: #389e0d;
+            font-size: 0.9rem;
+        }
+        
+        .message-info {
+            color: #096dd9;
+            font-size: 0.9rem;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0,0,0,0.1);
+            border-radius: 50%;
+            border-top-color: #3869d4;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Raw API View Styles */
+        .api-view {
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+        }
+        
+        .api-view.message-tool_call {
+            background-color: #e6f7ff;
+            border-left: 5px solid #1890ff;
+        }
+        
+        .api-view.message-tool_result {
+            background-color: #f6ffed;
+            border-left: 5px solid #52c41a;
+        }
+        
+        .api-view.message-thinking {
+            background-color: #fffbe6;
+            border-left: 5px solid #faad14;
+        }
+        
+        .api-view.message-final_answer, 
+        .api-view.message-complete {
+            background-color: #fff1f0;
+            border-left: 5px solid #f5222d;
+        }
+        
+        .api-view.message-error {
+            background-color: #fff2f0;
+            border-left: 5px solid #ff4d4f;
+        }
+        
+        .api-header {
+            margin-bottom: 5px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .api-content {
+            margin: 0;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+        
+        .timestamp {
+            color: #888;
+            font-size: 0.8em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ULog API Client Example</h1>
+        
+        <div class="section">
+            <h2>1. ULog File Selection</h2>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <select id="ulog-file-select" style="flex-grow: 1; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+                    <option value="">Default ULog file</option>
+                </select>
+                <button id="refresh-files-btn" style="padding: 8px 12px;">Refresh</button>
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <label for="file-upload" style="display: block; margin-bottom: 5px;">Upload New ULog File:</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="file" id="file-upload" accept=".ulg" style="flex-grow: 1;">
+                    <button id="upload-btn" style="padding: 8px 12px;">Upload</button>
+                </div>
+            </div>
+            <div id="upload-status" style="margin-top: 10px; padding: 10px; border-radius: 4px; display: none;"></div>
+        </div>
+        
+        <div class="section">
+            <h2>2. API Configuration</h2>
+            <div class="form-group">
+                <label for="api-url">API URL:</label>
+                <input type="text" id="api-url" value="http://localhost:5000/api" style="width: 300px;">
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>3. Query Form</h2>
+            <div class="form-group">
+                <label for="model-select">Model:</label>
+                <select id="model-select">
+                    <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                    <option value="groq-llama3">Groq Llama 3</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="view-mode">View Mode:</label>
+                <select id="view-mode">
+                    <option value="user">User-Friendly View</option>
+                    <option value="api">Raw API View</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="show-reasoning" checked>
+                    Show reasoning
+                </label>
+            </div>
+            
+            <div class="form-group">
+                <label for="example-select">Example Queries:</label>
+                <select id="example-select">
+                    <option value="">Select an example...</option>
+                    <!-- Will be populated from API -->
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="query-input">Query:</label>
+                <input type="text" id="query-input" style="width: 400px;" placeholder="Enter your query...">
+                <button id="submit-btn">Submit</button>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>4. Output</h2>
+            <div id="loading" style="display: none;">
+                <span class="spinner"></span> Processing query...
+            </div>
+            <div id="output" class="output"></div>
+        </div>
+        
+        <div class="section">
+            <h2>5. API Response Format</h2>
+            <div class="code">
+// Response format for /api/query
+{
+  "session_id": "uuid-string",
+  "status": "running",
+  "message": "Query is being processed"
+}
+
+// Stream format for /api/sessions/{session_id}/stream
+// Each line is a separate JSON object
+
+// Thinking message
+{"id": "uuid-string", "type": "thinking", "content": "Reasoning text...", "timestamp": 1648204800}
+
+// Tool call
+{"id": "uuid-string", "type": "tool_call", "content": {"id": "tool-id", "name": "tool-name", "arguments": {...}, "timestamp": 1648204800}, "timestamp": 1648204800}
+
+// Tool result
+{"id": "uuid-string", "type": "tool_result", "content": {"id": "result-id", "tool_call_id": "tool-id", "content": "...", "timestamp": 1648204800}, "timestamp": 1648204800}
+
+// Final answer
+{"id": "uuid-string", "type": "final_answer", "content": "The final answer is...", "timestamp": 1648204800}
+
+// Complete event
+{"type": "complete", "status": "completed", "final_answer": "The final answer is...", "error": null}
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // DOM elements
+        const apiUrlInput = document.getElementById('api-url');
+        const modelSelect = document.getElementById('model-select');
+        const viewModeSelect = document.getElementById('view-mode');
+        const showReasoningCheckbox = document.getElementById('show-reasoning');
+        const exampleSelect = document.getElementById('example-select');
+        const queryInput = document.getElementById('query-input');
+        const submitBtn = document.getElementById('submit-btn');
+        const outputDiv = document.getElementById('output');
+        const loadingDiv = document.getElementById('loading');
+        const ulogFileSelect = document.getElementById('ulog-file-select');
+        const refreshFilesBtn = document.getElementById('refresh-files-btn');
+        const fileUpload = document.getElementById('file-upload');
+        const uploadBtn = document.getElementById('upload-btn');
+        const uploadStatus = document.getElementById('upload-status');
+        
+        // Global variables
+        let abortController = null;
+        
+        // Load example queries
+        async function loadExamples() {
+            try {
+                const response = await fetch(`${apiUrlInput.value}/examples`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                // Clear existing options (except first)
+                while (exampleSelect.options.length > 1) {
+                    exampleSelect.remove(1);
+                }
+                
+                // Add examples
+                data.examples.forEach(example => {
+                    const option = document.createElement('option');
+                    option.value = example;
+                    option.textContent = example;
+                    exampleSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading examples:', error);
+                addMessage('Error loading examples: ' + error.message, 'error');
+            }
+        }
+        
+        // Load ULog files
+        async function loadULogFiles() {
+            try {
+                const response = await fetch(`${apiUrlInput.value}/ulog_files`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                // Clear existing options
+                ulogFileSelect.innerHTML = '<option value="">Default ULog file</option>';
+                
+                // Add options for each file
+                data.files.forEach(file => {
+                    const option = document.createElement('option');
+                    option.value = file.path;
+                    option.textContent = file.name;
+                    ulogFileSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading ULog files:', error);
+                uploadStatus.textContent = 'Error loading files: ' + error.message;
+                uploadStatus.style.backgroundColor = '#ffcccc';
+                uploadStatus.style.display = 'block';
+            }
+        }
+        
+        // Upload a ULog file
+        async function uploadULogFile() {
+            const file = fileUpload.files[0];
+            if (!file) {
+                uploadStatus.textContent = 'Please select a file first';
+                uploadStatus.style.backgroundColor = '#ffcccc';
+                uploadStatus.style.display = 'block';
+                return;
+            }
+            
+            // Create form data
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            // Show uploading status
+            uploadStatus.textContent = 'Uploading...';
+            uploadStatus.style.backgroundColor = '#ffffcc';
+            uploadStatus.style.display = 'block';
+            
+            // Upload the file
+            try {
+                const response = await fetch(`${apiUrlInput.value}/upload_ulog`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    uploadStatus.textContent = 'File uploaded successfully!';
+                    uploadStatus.style.backgroundColor = '#ccffcc';
+                    // Refresh the file list
+                    loadULogFiles();
+                } else {
+                    uploadStatus.textContent = 'Upload failed: ' + (data.error || 'Unknown error');
+                    uploadStatus.style.backgroundColor = '#ffcccc';
+                }
+            } catch (error) {
+                console.error('Error uploading file:', error);
+                uploadStatus.textContent = 'Upload error: ' + error.message;
+                uploadStatus.style.backgroundColor = '#ffcccc';
+            }
+        }
+        
+        // Add a message to the output
+        function addMessage(content, type) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message message-${type}`;
+            
+            if (typeof content === 'object') {
+                messageDiv.innerHTML = `<pre>${JSON.stringify(content, null, 2)}</pre>`;
+            } else {
+                messageDiv.textContent = content;
+            }
+            
+            outputDiv.appendChild(messageDiv);
+            outputDiv.scrollTop = outputDiv.scrollHeight;
+        }
+        
+        // Process the streaming response
+        function processStream(sessionId) {
+            // Clear any existing EventSource
+            if (window.eventSource) {
+                window.eventSource.close();
+            }
+            
+            // Create a new EventSource connection
+            window.eventSource = new EventSource(`${apiUrlInput.value}/sessions/${sessionId}/stream`);
+            
+            // Handle connection open
+            window.eventSource.onopen = function() {
+                console.log('EventSource connection opened');
+            };
+            
+            // Handle messages
+            window.eventSource.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    console.log('Received data:', data);
+                    
+                    // Get view mode
+                    const viewMode = viewModeSelect.value;
+                    
+                    if (viewMode === 'api') {
+                        // Raw API View
+                        displayRawApiMessage(data);
+                    } else {
+                        // User-friendly view
+                        displayUserFriendlyMessage(data);
+                    }
+                    
+                    // Scroll to bottom
+                    outputDiv.scrollTop = outputDiv.scrollHeight;
+                } catch (error) {
+                    console.error('Error parsing message:', error, event.data);
+                }
+            };
+            
+            // Handle errors
+            window.eventSource.onerror = function(error) {
+                console.error('EventSource error:', error);
+                addMessage('Connection error. Please try again.', 'error');
+                loadingDiv.style.display = 'none';
+                submitBtn.disabled = false;
+                window.eventSource.close();
+            };
+        }
+        
+        // Display message in user-friendly format
+        function displayUserFriendlyMessage(data) {
+            // Handle different message types
+            if (data.type === 'thinking' && showReasoningCheckbox.checked) {
+                // Update or create thinking message
+                let thinkingDiv = document.querySelector('.message-thinking');
+                if (!thinkingDiv) {
+                    thinkingDiv = document.createElement('div');
+                    thinkingDiv.className = 'message message-thinking';
+                    outputDiv.appendChild(thinkingDiv);
+                }
+                thinkingDiv.textContent = data.content;
+            } 
+            else if (data.type === 'tool_call') {
+                // Add tool call message
+                const toolCallDiv = document.createElement('div');
+                toolCallDiv.className = 'message message-tool-call';
+                toolCallDiv.innerHTML = `
+                    <strong>Tool Call:</strong> ${data.tool_name}
+                    <pre>${JSON.stringify(data.args, null, 2)}</pre>
+                `;
+                outputDiv.appendChild(toolCallDiv);
+            } 
+            else if (data.type === 'tool_result') {
+                // Add tool result message
+                const toolResultDiv = document.createElement('div');
+                toolResultDiv.className = 'message message-tool-result';
+                toolResultDiv.innerHTML = `
+                    <strong>Tool Result:</strong>
+                    <pre>${JSON.stringify(data.result, null, 2)}</pre>
+                `;
+                outputDiv.appendChild(toolResultDiv);
+            } 
+            else if (data.type === 'final_answer' || data.type === 'complete') {
+                // Add final answer message
+                const finalAnswerDiv = document.createElement('div');
+                finalAnswerDiv.className = 'message message-final-answer';
+                finalAnswerDiv.textContent = data.final_answer || data.content;
+                outputDiv.appendChild(finalAnswerDiv);
+                
+                // Clean up
+                loadingDiv.style.display = 'none';
+                submitBtn.disabled = false;
+                window.eventSource.close();
+            } 
+            else if (data.type === 'error') {
+                // Add error message
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'message message-error';
+                errorDiv.textContent = `Error: ${data.error}`;
+                outputDiv.appendChild(errorDiv);
+                
+                // Clean up
+                loadingDiv.style.display = 'none';
+                submitBtn.disabled = false;
+                window.eventSource.close();
+            }
+        }
+        
+        // Display message in raw API format
+        function displayRawApiMessage(data) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `api-view message-${data.type}`;
+            
+            // Create a header with type and timestamp
+            const header = document.createElement('div');
+            header.className = 'api-header';
+            
+            const typeSpan = document.createElement('span');
+            typeSpan.className = 'type-label';
+            typeSpan.textContent = data.type.toUpperCase();
+            
+            const timestampSpan = document.createElement('span');
+            timestampSpan.className = 'timestamp';
+            timestampSpan.textContent = new Date().toLocaleTimeString();
+            
+            header.appendChild(typeSpan);
+            header.appendChild(timestampSpan);
+            messageDiv.appendChild(header);
+            
+            // Add raw JSON content
+            const content = document.createElement('pre');
+            content.className = 'api-content';
+            content.textContent = JSON.stringify(data, null, 2);
+            messageDiv.appendChild(content);
+            
+            outputDiv.appendChild(messageDiv);
+            
+            // Handle cleanup for terminal events
+            if (data.type === 'complete' || data.type === 'final_answer' || data.type === 'error') {
+                loadingDiv.style.display = 'none';
+                submitBtn.disabled = false;
+                if (window.eventSource) {
+                    window.eventSource.close();
+                }
+            }
+        }
+        
+        // Submit a query
+        async function submitQuery() {
+            const query = queryInput.value.trim();
+            if (!query) {
+                alert('Please enter a query');
+                return;
+            }
+            
+            // Clear output and show loading
+            outputDiv.innerHTML = '';
+            loadingDiv.style.display = 'block';
+            submitBtn.disabled = true;
+            
+            // Cancel any existing connection
+            if (window.eventSource) {
+                window.eventSource.close();
+            }
+            
+            try {
+                // Submit the query
+                const response = await fetch(`${apiUrlInput.value}/query`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        query: query,
+                        show_reasoning: showReasoningCheckbox.checked,
+                        model: modelSelect.value,
+                        ulog_file: ulogFileSelect.value
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                addMessage(`Query submitted. Session ID: ${data.session_id}`, 'info');
+                
+                // Start streaming from the session
+                processStream(data.session_id);
+                
+            } catch (error) {
+                console.error('Error submitting query:', error);
+                addMessage('Error submitting query: ' + error.message, 'error');
+                loadingDiv.style.display = 'none';
+                submitBtn.disabled = false;
+            }
+        }
+        
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            loadExamples();
+            loadULogFiles();
+        });
+        
+        submitBtn.addEventListener('click', submitQuery);
+        
+        queryInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                submitQuery();
+            }
+        });
+        
+        exampleSelect.addEventListener('change', () => {
+            if (exampleSelect.value) {
+                queryInput.value = exampleSelect.value;
+            }
+        });
+        
+        refreshFilesBtn.addEventListener('click', loadULogFiles);
+        
+        uploadBtn.addEventListener('click', uploadULogFile);
+    </script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+# ULog Reasoning Agent API Dependencies for Cloudflare Deployment
+
+# API Clients
+groq>=0.4.0
+google-generativeai>=0.4.0
+
+# Web Framework
+flask>=2.0.0
+flask-cors>=3.0.0
+gunicorn>=20.1.0  # For production deployment
+
+# Data Processing
+python-dotenv>=1.0.0
+pandas>=2.0.0
+numpy>=1.24.0
+matplotlib>=3.7.0
+pyulog>=1.0.0
+regex>=2023.0.0
+
+# Storage
+boto3>=1.28.0  # For Cloudflare R2 integration
+botocore>=1.31.0
+
+# Utils
+werkzeug>=2.0.0
