@@ -33,6 +33,7 @@ format = "service-worker"
 [triggers]
 crons = []
 
-[limits]
-cpu_ms = 50
-memory_mb = 128
+# Remove CPU limits as they're not supported on the free plan
+# [limits]
+# cpu_ms = 50
+# memory_mb = 128
