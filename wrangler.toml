@@ -1,11 +1,10 @@
 name = "ulog-api"
-main = "cloudflare_worker.js"
+main = "worker.js"
 compatibility_date = "2024-03-25"
 workers_dev = true
 usage_model = "bundled"
 
-[site]
-bucket = "./public"
+# Remove the [site] section since we're not deploying a static site
 
 [build]
 command = "pip install -r requirements_cloudflare.txt"
